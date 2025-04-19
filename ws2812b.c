@@ -1,6 +1,7 @@
 #include "ws2812b.h"
 #include <xc.h>
 #include <libpic30.h>
+#include "imu.h"
 
 #define DATA_PIN LATBbits.LATB0
 #define TRIS_PIN TRISBbits.TRISB0
@@ -47,5 +48,26 @@ void NeoPixel_Show(void) {
 
 void NeoPixel_Clear(void) {
     NeoPixel_SetColor(0, 0, 0, 0);
+    NeoPixel_Show();
+}
+
+void setLedColor(Gesture g) {
+    switch (g) {
+        case GESTURE_LEFT:
+            NeoPixel_SetColor(0, 255, 0, 0);  // Red
+            break;
+        case GESTURE_RIGHT:
+            NeoPixel_SetColor(0, 0, 0, 255);  // Blue
+            break;
+        case GESTURE_UP:
+            NeoPixel_SetColor(0, 0, 255, 0);  // Green
+            break;
+        case GESTURE_DOWN:
+            NeoPixel_SetColor(0, 255, 255, 0); // Yellow
+            break;
+        default:
+            NeoPixel_SetColor(0, 0, 0, 0);    // Off
+            break;
+    }
     NeoPixel_Show();
 }
