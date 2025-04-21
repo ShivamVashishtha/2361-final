@@ -48,6 +48,7 @@ int main(void)
 
     while (1) {
         IMU_read(&imu);
+        IMU_applyFilter(&imu);
         g = detectGesture(&imu);
 
         if (g != last) {
@@ -61,12 +62,15 @@ int main(void)
                 default:            setStrip(0, 0, 0); break;
             }
 
-            show(); // Only update LEDs if gesture changed
+            show();  // Update LED only on gesture change
+
+            // Optional: log gesture
+            sprintf(buffer, "Gesture: %d | X: %.2f Y: %.2f Z: %.2f\r\n", g, imu.accel_x, imu.accel_y, imu.accel_z);
+            UART1_Print(buffer);
+
+            __delay_ms(100);  // Debounce delay after gesture
         }
 
-        sprintf(buffer, "X: %.2f Y: %.2f Z: %.2f\r\n", imu.accel_x, imu.accel_y, imu.accel_z);
-        UART1_Print(buffer);
-
-        __delay_ms(50); // Faster response
+        __delay_ms(30);  // Background polling
     }
 }
