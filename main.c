@@ -1,5 +1,8 @@
 #include "xc.h"
 #include "neopixel.h"
+#include "imu.h"
+#include "uart.h"
+#include <stdio.h>
 
 // CW1: FLASH CONFIGURATION WORD 1 (see PIC24 Family Reference Manual 24.1)
 #pragma config ICS = PGx1          // Comm Channel Select (Emulator EMUC1/EMUD1 pins are shared with PGC1/PGD1)
@@ -19,24 +22,42 @@
 
 void setup(void)
 {
-    CLKDIVbits.RCDIV = 0;  //Set RCDIV=1:1 (default 2:1) 32MHz or FCY/2=16M
-    
-    neopixel_init();        // Initialize the NeoPixel pin
-    setLeds(15);
-    setBrightness(50);
-    clear();                // Make sure strip is initially off
+    CLKDIVbits.RCDIV = 0;
 
-    // Set some colors
-    setStrip(50, 50, 50);
-    show();  // Update the NeoPixel strip with the new colors
+    neopixel_init();
+    setLeds(1);
+    setBrightness(50);
+    clear();
+
+    I2C1_Init();    // Assuming you have I2C1_Init() defined
+    IMU_init();
+    UART1_Init();
 }
+
+char buffer[64];
 
 int main(void)
 {
+    IMU_Data imu;
+    Gesture g;
     setup();
-    while(1) {
-//        rgbColorShiftWhole(10);
-        rgbGradientShift(5);
+
+    while (1) {
+        IMU_read(&imu);
+        g = detectGesture(&imu);
+
+        switch (g) {
+            case GESTURE_UP: setStrip(0, 255, 0); break;
+            case GESTURE_DOWN: setStrip(255, 0, 0); break;
+            case GESTURE_LEFT: setStrip(0, 0, 255); break;
+            case GESTURE_RIGHT: setStrip(255, 255, 0); break;
+            default: setStrip(0, 0, 0); break;
+        }
+        show();
+
+        sprintf(buffer, "X: %.2f Y: %.2f Z: %.2f\r\n", imu.accel_x, imu.accel_y, imu.accel_z);
+        UART1_Print(buffer);
+
+        __delay_ms(300);
     }
-    return 0;
 }
