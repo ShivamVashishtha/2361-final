@@ -2,9 +2,6 @@
 #include "i2c.h"
 
 #define MPU_ADDR 0x68
-#define ALPHA 0.3  // Smoothing factor
-
-static IMU_Data smoothed = {0};
 
 void IMU_init(void) {
     I2C1_Start();
@@ -36,23 +33,11 @@ void IMU_read(IMU_Data* data) {
     data->accel_z = az / 16384.0f;
 }
 
-void IMU_applyFilter(IMU_Data* data) {
-    smoothed.accel_x = smoothed.accel_x * (1 - ALPHA) + data->accel_x * ALPHA;
-    smoothed.accel_y = smoothed.accel_y * (1 - ALPHA) + data->accel_y * ALPHA;
-    smoothed.accel_z = smoothed.accel_z * (1 - ALPHA) + data->accel_z * ALPHA;
-
-    data->accel_x = smoothed.accel_x;
-    data->accel_y = smoothed.accel_y;
-    data->accel_z = smoothed.accel_z;
-}
-
 Gesture detectGesture(const IMU_Data* data) {
-    const float THRESH = 1.0;
-
+    const float THRESH = 0.4;
     if (data->accel_y > THRESH) return GESTURE_UP;
     if (data->accel_y < -THRESH) return GESTURE_DOWN;
     if (data->accel_x > THRESH) return GESTURE_RIGHT;
     if (data->accel_x < -THRESH) return GESTURE_LEFT;
-
     return GESTURE_NONE;
 }

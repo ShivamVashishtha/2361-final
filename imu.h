@@ -19,7 +19,6 @@ typedef enum {
 
 void IMU_init(void);
 void IMU_read(IMU_Data* data);
-void IMU_applyFilter(IMU_Data* data);  // NEW
 Gesture detectGesture(const IMU_Data* data);
 
 #endif
