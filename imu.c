@@ -1,15 +1,16 @@
 #include "imu.h"
 #include "i2c.h"
-
+#define MPU_ADDR 0x68
 #define MPU_ADDR 0x68
 
 void IMU_init(void) {
-    I2C1_Start();
-    I2C1_Write(MPU_ADDR << 1);
-    I2C1_Write(0x6B);     // PWR_MGMT_1
-    I2C1_Write(0x00);     // Wake up
-    I2C1_Stop();
+    I2C1_Start();                       // Start I2C communication
+    I2C1_Write(MPU_ADDR << 1);         // Write address (0xD0)
+    I2C1_Write(0x6B);                  // Register: PWR_MGMT_1
+    I2C1_Write(0x00);                  // Value: wake up the MPU6050
+    I2C1_Stop();                       // End I2C transaction
 }
+
 
 void IMU_read(IMU_Data* data) {
     uint8_t raw[6];
