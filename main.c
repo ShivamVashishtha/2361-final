@@ -22,14 +22,20 @@
 
 void setup(void)
 {
-    CLKDIVbits.RCDIV = 0;
+    CLKDIVbits.RCDIV = 0;  // 1:1 clock division (16 MHz FCY)
+
+    // Unlock PPS
+    __builtin_write_OSCCONL(OSCCON & 0xBF);
+    RPB9Rbits.RPB9R = 0b1000; // SDA1 on RB9
+    RPB8Rbits.RPB8R = 0b1000; // SCL1 on RB8
+    __builtin_write_OSCCONL(OSCCON | 0x40); // Lock PPS
 
     neopixel_init();
     setLeds(1);
     setBrightness(50);
     clear();
 
-    I2C1_Init();    // Assuming you have I2C1_Init() defined
+    I2C1_Init();    // Assuming I2C1_Init() is defined elsewhere
     IMU_init();
     UART1_Init();
 }
