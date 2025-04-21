@@ -1,7 +1,6 @@
 #include "imu.h"
 #include "i2c.h"
 #define MPU_ADDR 0x68
-#define MPU_ADDR 0x68
 
 void IMU_init(void) {
     I2C1_Start();                       // Start I2C communication
