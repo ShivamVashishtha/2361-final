@@ -1,7 +1,6 @@
 #include "xc.h"
 #include "neopixel.h"
 #include "imu.h"
-#include "uart.h"
 #include "i2c.h"
 
 // CW1: FLASH CONFIGURATION WORD 1 (see PIC24 Family Reference Manual 24.1)
@@ -37,7 +36,6 @@ void setup(void)
 
     I2C1_Init();    // Assuming I2C1_Init() is defined elsewhere
     IMU_init();
-    UART1_Init();
 }
 
 char buffer[64];
