@@ -1,8 +1,9 @@
 #include "imu.h"
 #include "i2c.h"
 
-#define MPU_ADDR 0x68
-
+/**
+ * @brief Wakes up the MPU6050 IMU using I2C.
+ */
 void IMU_init(void) {
     I2C1_Start();
     I2C1_Write(MPU_ADDR << 1);
@@ -11,6 +12,11 @@ void IMU_init(void) {
     I2C1_Stop();
 }
 
+/**
+ * @brief Reads and scales accelerometer data from MPU6050.
+ * 
+ * @param data Pointer to store scaled accel values (in g).
+ */
 void IMU_read(IMU_Data* data) {
     uint8_t raw[6];
     I2C1_Start();
@@ -33,11 +39,27 @@ void IMU_read(IMU_Data* data) {
     data->accel_z = az / 16384.0f;
 }
 
-Gesture detectGesture(const IMU_Data* data) {
-    const float THRESH = 0.4;
-    if (data->accel_y > THRESH) return GESTURE_UP;
-    if (data->accel_y < -THRESH) return GESTURE_DOWN;
-    if (data->accel_x > THRESH) return GESTURE_RIGHT;
-    if (data->accel_x < -THRESH) return GESTURE_LEFT;
+/**
+ * @brief Detects gesture based on accel direction and threshold.
+ * 
+ * @param data Pointer to accel data.
+ * @return Detected gesture enum.
+ */
+Gesture detectGesture(const IMU_Data* data) {    
+    float absAccelX = (data->accel_x >= 0) ? data->accel_x : -data->accel_x;
+    float absAccelY = (data->accel_y >= 0) ? data->accel_y : -data->accel_y;
+
+    float maxAccel = (absAccelX > absAccelY) ? absAccelX : absAccelY;
+    
+    if (maxAccel < THRESH) return GESTURE_NONE;
+
+    if (absAccelY == maxAccel) {
+        if (data->accel_y > 0) return GESTURE_UP;
+        if (data->accel_y < 0) return GESTURE_DOWN;
+    } else if (absAccelX == maxAccel) {
+        if (data->accel_x > 0) return GESTURE_RIGHT;
+        if (data->accel_x < 0) return GESTURE_LEFT;
+    }
+    
     return GESTURE_NONE;
 }

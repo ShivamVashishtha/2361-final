@@ -19,29 +19,20 @@
                                        // Fail-Safe Clock Monitor is enabled)
 #pragma config FNOSC = FRCPLL      // Oscillator Select (Fast RC Oscillator with PLL module (FRCPLL))
 
-void setup(void)
-{
+void setup(void) {
     CLKDIVbits.RCDIV = 0;  // 1:1 clock division (16 MHz FCY)
-
-    __builtin_write_OSCCONL(OSCCON & 0xBF);      // Unlock PPS
-    RPINR20bits.SDI1R1 = 9;                       // RB9 = SDA1 (input)
-    RPOR4bits.RP8R = 0b1000;                     // RB8 = SCL1 (output)
-    __builtin_write_OSCCONL(OSCCON | 0x40);      // Lock PPS
-
 
     neopixel_init();
     setLeds(15);
     setBrightness(50);
+    setSpeed(2);
     clear();
 
-    I2C1_Init();    // Assuming I2C1_Init() is defined elsewhere
+    I2C1_Init();
     IMU_init();
 }
 
-char buffer[64];
-
-int main(void)
-{
+int main(void) {
     IMU_Data imu;
     Gesture g;
     setup();
@@ -51,12 +42,12 @@ int main(void)
         g = detectGesture(&imu);
 
         switch (g) {
-            case GESTURE_UP: setStrip(0, 255, 0); customDelay(500); break;
-            case GESTURE_DOWN: setStrip(255, 0, 0); customDelay(500); break;
-            case GESTURE_LEFT: setStrip(0, 0, 255); customDelay(500); break;
-            case GESTURE_RIGHT: setStrip(255, 255, 0); customDelay(500); break;
-            // default: setStrip(0, 0, 0); break;
+            case GESTURE_UP: changeBrightness(5); customDelay(400); break;
+            case GESTURE_DOWN: changeBrightness(-5); customDelay(400); break;
+            case GESTURE_LEFT: changeSpeed(-1); customDelay(400); break;
+            case GESTURE_RIGHT: changeSpeed(1); customDelay(400); break;
         }
+        rgbGradientShift(1);
         show();
         customDelay(10);
     }
