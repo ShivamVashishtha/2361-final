@@ -2,25 +2,24 @@
 #include "neopixel.h"
 #include "imu.h"
 #include "i2c.h"
+#include <math.h>
 
-// CW1: FLASH CONFIGURATION WORD 1 (see PIC24 Family Reference Manual 24.1)
-#pragma config ICS = PGx1          // Comm Channel Select (Emulator EMUC1/EMUD1 pins are shared with PGC1/PGD1)
-#pragma config FWDTEN = OFF        // Watchdog Timer Enable (Watchdog Timer is disabled)
-#pragma config GWRP = OFF          // General Code Segment Write Protect (Writes to program memory are allowed)
-#pragma config GCP = OFF           // General Code Segment Code Protect (Code protection is disabled)
-#pragma config JTAGEN = OFF        // JTAG Port Enable (JTAG port is disabled)
+// CW1
+#pragma config ICS = PGx1
+#pragma config FWDTEN = OFF
+#pragma config GWRP = OFF
+#pragma config GCP = OFF
+#pragma config JTAGEN = OFF
 
-
-// CW2: FLASH CONFIGURATION WORD 2 (see PIC24 Family Reference Manual 24.1)
-#pragma config I2C1SEL = PRI       // I2C1 Pin Location Select (Use default SCL1/SDA1 pins)
-#pragma config IOL1WAY = OFF       // IOLOCK Protection (IOLOCK may be changed via unlocking seq)
-#pragma config OSCIOFNC = ON       // Primary Oscillator I/O Function (CLKO/RC15 functions as I/O pin)
-#pragma config FCKSM = CSECME      // Clock Switching and Monitor (Clock switching is enabled, 
-                                       // Fail-Safe Clock Monitor is enabled)
-#pragma config FNOSC = FRCPLL      // Oscillator Select (Fast RC Oscillator with PLL module (FRCPLL))
+// CW2
+#pragma config I2C1SEL = PRI
+#pragma config IOL1WAY = OFF
+#pragma config OSCIOFNC = ON
+#pragma config FCKSM = CSECME
+#pragma config FNOSC = FRCPLL
 
 void setup(void) {
-    CLKDIVbits.RCDIV = 0;  // 1:1 clock division (16 MHz FCY)
+    CLKDIVbits.RCDIV = 0;
 
     neopixel_init();
     setLeds(15);
@@ -30,25 +29,66 @@ void setup(void) {
 
     I2C1_Init();
     IMU_init();
+
+    // Setup RB4 as button input with pull-up
+    TRISBbits.TRISB4 = 1;          // Input
+    CNPU1bits.CN1PUE = 1;          // Enable internal pull-up
+}
+
+int clamp(int val) {
+    if (val < 0) return 0;
+    if (val > 255) return 255;
+    return val;
 }
 
 int main(void) {
     IMU_Data imu;
     Gesture g;
+    int r = 0, g_col = 0, b = 0;
+    int target_r = 0, target_g = 0, target_b = 0;
+    int mode = 0;  // 0 = rainbow + gestures, 1 = RGB tilt
+    int prevButtonState = 1;
+
     setup();
 
     while (1) {
         IMU_read(&imu);
-        g = detectGesture(&imu);
 
-        switch (g) {
-            case GESTURE_UP: changeBrightness(5); customDelay(400); break;
-            case GESTURE_DOWN: changeBrightness(-5); customDelay(400); break;
-            case GESTURE_LEFT: changeSpeed(-1); customDelay(400); break;
-            case GESTURE_RIGHT: changeSpeed(1); customDelay(400); break;
+        // Detect button press (active LOW)
+        int button = PORTBbits.RB4;
+        if (prevButtonState == 1 && button == 0) {
+            mode ^= 1;  // Toggle mode
+            customDelay(300);  // Debounce delay
         }
-        rgbGradientShift(1);
-        show();
-        customDelay(10);
+        prevButtonState = button;
+
+        if (mode == 1) {
+            // Mode 1: RGB tilt mode
+            target_r = clamp((int)((imu.accel_x + 1.0) * 127.5));
+            target_g = clamp((int)((imu.accel_y + 1.0) * 127.5));
+            target_b = clamp((int)((imu.accel_z + 1.0) * 127.5));
+
+            // Smooth transition
+            r += (target_r - r) / 4;
+            g_col += (target_g - g_col) / 4;
+            b += (target_b - b) / 4;
+
+            setStrip(r, g_col, b);
+            show();
+        } else {
+            // Mode 0: Rainbow gradient + gestures
+            g = detectGesture(&imu);
+            switch (g) {
+                case GESTURE_UP:    changeBrightness(5);  customDelay(400); break;
+                case GESTURE_DOWN:  changeBrightness(-5); customDelay(400); break;
+                case GESTURE_LEFT:  changeSpeed(-1);      customDelay(400); break;
+                case GESTURE_RIGHT: changeSpeed(1);       customDelay(400); break;
+            }
+
+            rgbGradientShift(1);
+            show();
+        }
+
+        customDelay(50);
     }
 }
